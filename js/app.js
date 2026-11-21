@@ -418,10 +418,17 @@ async function viewAdmin() {
       ${['scheduled', 'live', 'ft', 'postponed', 'abandoned'].map((s) => `<option value="${s}" ${f.manual_status && f.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select></li>`;
   }
   html += `</ul></section>
-    <section class="card"><h3>Invite the family</h3><p class="tiny">Send them this link. On iPhone or iPad, open it in Safari, tap Share, then "Add to Home Screen". On Android, open it in Chrome, tap ⋮, then "Add to Home screen".</p>
+    ${shareCard('Invite the family')}
+    <section class="card"><h3>Add it to the home screen</h3><p class="tiny">Send them the link. On iPhone or iPad, open it in Safari, tap Share, then "Add to Home Screen". On Android, open it in Chrome, tap ⋮, then "Add to Home screen".</p>
     <input readonly value="${esc(location.origin + location.pathname)}"></section>`;
   $app.innerHTML = html;
 }
+
+const APP_LINK = 'https://prsouza03.github.io/familybettingapp/';
+const shareCard = (title) => `<section class="card center share"><h3>${title}</h3>
+  <img src="icons/qr.svg" alt="QR code for the app link" width="200" height="200">
+  <p class="tiny">Scan with a phone camera to open the app.<br><a href="${APP_LINK}">${APP_LINK.replace('https://', '')}</a></p>
+  <button class="btn small ghost" data-act="share">📤 Share link</button></section>`;
 
 // ---------- sign in (name + password, no email needed) ----------
 // Supabase needs an email-shaped login, so each name becomes a private login id
@@ -443,7 +450,8 @@ function viewAuth(mode = 'in') {
     ${mode === 'in'
     ? '<p class="center"><a href="#" data-mode="up">New here? Create an account</a><br><span class="muted tiny">Forgot your password? Ask the admin to reset it.</span></p>'
     : '<p class="center"><a href="#" data-mode="in">Back to sign in</a></p>'}
-  </form>`;
+  </form>
+  ${shareCard('Invite the family')}`;
 }
 
 async function submitAuth(form) {
@@ -535,6 +543,12 @@ document.addEventListener('click', async (ev) => {
     return route();
   }
   if (act === 'reload') return route();
+  if (act === 'share') {
+    const data = { title: 'Family Picks', text: 'Join our Saturday football picks game', url: APP_LINK };
+    if (navigator.share) { try { await navigator.share(data); } catch { /* closed */ } return; }
+    try { await navigator.clipboard.writeText(APP_LINK); toast('Link copied. Paste it into WhatsApp.'); } catch { toast(APP_LINK, 8000); }
+    return;
+  }
   if (act === 'week-off' || act === 'week-off-other') {
     ev.preventDefault();
     const day = act === 'week-off' ? t.dataset.day : document.getElementById('other-day').value;

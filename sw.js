@@ -1,6 +1,6 @@
 // Lets the app install to the home screen and open quickly. Always tries the network first,
 // so everyone gets the latest version; falls back to the saved copy when offline.
-const CACHE = 'family-picks-v2';
+const CACHE = 'family-picks-v3';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', (e) => {

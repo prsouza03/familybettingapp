@@ -92,3 +92,4 @@ code { background: var(--card2); padding: 1px 5px; border-radius: 5px; }
 .row .btns { flex-wrap: nowrap; }
 .row .btns input[id^="np-"] { width: 120px; flex: none; margin: 0; padding: 7px; }
 .row .btns .btn { margin: 0; }
+.share img { background: #fff; padding: 8px; border-radius: 12px; width: 200px; height: 200px; }
