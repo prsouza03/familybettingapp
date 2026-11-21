@@ -24,7 +24,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node scripts/update-results.mjs $DAY
+      - run: node scripts/diag.mjs
         env:
           DAY: ${{ github.event.inputs.day }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
