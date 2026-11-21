@@ -20,7 +20,7 @@ A free web app for the family's Saturday 3pm football picks game. Install it to 
 | Automatic updates | GitHub Actions schedule | Free |
 | Reading screenshots | Tesseract, running on the phone | Free |
 
-Results update by themselves on **Friday evening** (to load fixtures) and on **Saturday at about 9am, 3:50pm, 4:30pm, 5pm and 5:30pm** UK time. GitHub can start these up to about 15 minutes late. During the games, the app also pulls live scores every 2 minutes while it's open. The admin has a **Refresh** button as well. Scottish League One/Two and NIFL scores come only from the scheduled updates, because browsers can't read the BBC page directly. The BBC source is unofficial: if the BBC changes its page, the update log will say so, and the admin can type those scores in by hand until it's fixed.
+Fixtures load by themselves on **Sunday morning** for the coming Saturday, and are refreshed on Wednesday and Friday evening. Results update on **Saturday at about 9am, 3:50pm, 4:30pm, 5pm and 5:30pm** UK time. GitHub can start these up to about 15 minutes late. During the games, the app also pulls live scores every 2 minutes while it's open. The admin has a **Refresh** button as well. Scottish League One/Two and NIFL scores come only from the scheduled updates, because browsers can't read the BBC page directly. The BBC source is unofficial: if the BBC changes its page, the update log will say so, and the admin can type those scores in by hand until it's fixed.
 
 ## One-time setup (about 15 minutes)
 
@@ -56,7 +56,7 @@ Then open **Actions → Update results → Run workflow** once to check that it 
 - **My picks:** tap **Choose screenshot** and pick your Flashscore Favourites screenshot. The app ticks the matches it recognises, and marks with **check** any it found from only one team. Fix anything it got wrong, then tap **Save picks**. You can also just tick the matches yourself.
 - **Saturday:** before 3pm it shows who's in and the pot. After 3pm it shows the live table. Tap a name to see their 10 matches. When everything has finished, it names the winner and their winnings.
 - **History:** a money table (wins, winnings, profit), the highest score, the 20-point club, lucky teams, winning runs and every past Saturday.
-- **Admin:** refresh results, load another Saturday, mark matches postponed by hand, rename players and add players who don't use the app (then enter their picks on **My picks** with "Entering picks for").
+- **Admin:** mark a Saturday as **no game** (international break), refresh results, load another Saturday, mark matches postponed by hand, rename players and add players who don't use the app (then enter their picks on **My picks** with "Entering picks for").
 
 ## For developers
 

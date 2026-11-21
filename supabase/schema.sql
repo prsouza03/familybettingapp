@@ -213,3 +213,26 @@ language sql stable security definer set search_path = public as $$
 $$;
 revoke all on function public.week_entries(date) from public, anon;
 grant execute on function public.week_entries(date) to authenticated;
+
+-- Saturdays with no game (international breaks).
+create table if not exists public.weeks_off (
+  week_id date primary key,
+  reason text default 'International break',
+  created_at timestamptz not null default now()
+);
+alter table public.weeks_off enable row level security;
+drop policy if exists weeks_off_read on public.weeks_off;
+create policy weeks_off_read on public.weeks_off for select to authenticated using (true);
+drop policy if exists weeks_off_admin on public.weeks_off;
+create policy weeks_off_admin on public.weeks_off for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+grant select, insert, update, delete on public.weeks_off to authenticated;
+
+-- No picks on a Saturday with no game (the admin can still change anything).
+drop policy if exists picks_insert on public.picks;
+create policy picks_insert on public.picks for insert to authenticated with check (
+  public.is_admin()
+  or (player_id = public.my_player_id() and now() < public.pick_deadline(week_id)
+      and exists (select 1 from fixtures f where f.id = fixture_id and f.week_id = picks.week_id)
+      and not exists (select 1 from weeks_off o where o.week_id = picks.week_id))
+);

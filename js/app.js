@@ -87,7 +87,8 @@ async function loadWeek(day) {
     sb.rpc('week_entries', { week: day }),
   ]);
   for (const r of [fx, pk, en]) if (r.error) throw r.error;
-  return { fixtures: sortFixtures(fx.data), picks: pk.data, entries: en.data || [] };
+  const off = await sb.from('weeks_off').select('*').eq('week_id', day);
+  return { fixtures: sortFixtures(fx.data), picks: pk.data, entries: en.data || [], off: off.data?.[0] || null };
 }
 
 const picksByPlayer = (picks) => {
@@ -130,9 +131,13 @@ async function viewWeek(day, { current }) {
   const deadline = deadlineFor(day);
   const locked = Date.now() >= Date.parse(deadline);
   let html = `<section class="hero"><div class="muted">${current ? 'This Saturday' : 'Saturday'}</div><h1>${dayLabel(day)}</h1>`;
+  if (data.off) {
+    $app.innerHTML = html + `</section><section class="card center"><h3>🌍 No game this Saturday</h3><p>${esc(data.off.reason || 'International break')}. See you next week!</p></section>`;
+    return;
+  }
 
   if (!fixtures.length) {
-    html += `</section><section class="card"><p>The 3pm fixtures aren't loaded yet. They load automatically on Friday evening.</p>
+    html += `</section><section class="card"><p>The 3pm fixtures aren't loaded yet. They load automatically on Sunday morning and again on Friday evening.</p>
       ${state.me?.is_admin ? '<button class="btn" data-act="sync">Load fixtures now</button>' : ''}</section>`;
     $app.innerHTML = html;
     return;
@@ -225,8 +230,12 @@ async function viewPicks() {
     html += `<section class="card"><label>Entering picks for <select id="who-for">${state.players.map((p) => `<option value="${p.id}" ${p.id === targetId ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>
       ${locked ? '<p class="muted tiny">Picks are closed, but as admin you can still change them.</p>' : ''}</section>`;
   }
+  if (data.off && !admin) {
+    $app.innerHTML = html + `<section class="card"><p>No game this Saturday (${esc(data.off.reason || 'international break')}).</p></section>`;
+    return;
+  }
   if (!fixtures.length) {
-    $app.innerHTML = html + '<section class="card"><p>The 3pm fixtures load on Friday evening. Check back then.</p></section>';
+    $app.innerHTML = html + '<section class="card"><p>The 3pm fixtures load by Sunday morning (and are refreshed on Friday evening). Check back then.</p></section>';
     return;
   }
 
@@ -308,11 +317,13 @@ const seasonOf = (day) => { const [y, m] = day.split('-').map(Number); return m 
 
 async function viewHistory(season) {
   clearInterval(state.liveTimer);
-  const [fixtures, picks] = await Promise.all([
+  const [fixtures, picks, offRes] = await Promise.all([
     fetchAll(() => sb.from('fixtures').select('*').order('id')),
     fetchAll(() => sb.from('picks').select('*').order('id')),
+    sb.from('weeks_off').select('week_id'),
   ]);
-  const days = [...new Set(picks.map((p) => p.week_id))].sort();
+  const offDays = new Set((offRes.data || []).map((o) => o.week_id));
+  const days = [...new Set(picks.map((p) => p.week_id))].filter((d) => !offDays.has(d)).sort();
   const weeks = days.map((d) => ({
     week_id: d,
     standings: weekStandings(state.players, picksByPlayer(picks.filter((p) => p.week_id === d)), fixtures.filter((f) => f.week_id === d)),
@@ -372,13 +383,24 @@ async function viewAdmin() {
   clearInterval(state.liveTimer);
   if (!state.me?.is_admin) { location.hash = '#/'; return; }
   const day = state.week;
-  const [{ fixtures }, log] = await Promise.all([loadWeek(day), sb.from('sync_log').select('*').order('ran_at', { ascending: false }).limit(6)]);
+  const [{ fixtures }, log, offRes] = await Promise.all([loadWeek(day), sb.from('sync_log').select('*').order('ran_at', { ascending: false }).limit(6),
+    sb.from('weeks_off').select('*').gte('week_id', new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10)).order('week_id')]);
+  const offs = offRes.data || [];
+  const thisOff = offs.find((o) => o.week_id === day);
   let html = `<section class="hero"><h1>Admin</h1><div class="muted">${dayLabel(day)}</div></section>
+    <section class="card"><h3>🌍 International break</h3>
+      <p class="tiny">${thisOff ? `<b>No game on ${dayLabel(day)}.</b>` : `The game is on for ${dayLabel(day)}.`}</p>
+      <button class="btn small ${thisOff ? '' : 'ghost'}" data-act="${thisOff ? 'week-on' : 'week-off'}" data-day="${day}">${thisOff ? 'Turn the game back on' : 'No game this Saturday'}</button>
+      ${offs.filter((o) => o.week_id !== day).length ? `<p class="muted tiny">Also off: ${offs.filter((o) => o.week_id !== day).map((o) => `${dayLabel(o.week_id)} <a href="#" data-act="week-on" data-day="${o.week_id}">undo</a>`).join(' · ')}</p>` : ''}
+      <p class="muted tiny">To mark a later Saturday, choose its date under "A different Saturday" below.</p>
+    </section>
     <section class="card"><h3>Results</h3>
-      <p class="muted tiny">Results update by themselves on Saturday at about 3:50pm and 5pm, plus 4:30pm and 5:30pm. Fixtures load on Friday evening. The button below updates every league except Scottish League One/Two and the NIFL, which only the scheduled update can read (from BBC Sport).</p>
+      <p class="muted tiny">Results update by themselves on Saturday at about 3:50pm and 5pm, plus 4:30pm and 5:30pm. Fixtures load on Sunday morning and are refreshed on Wednesday, Friday evening and Saturday morning. The button below updates every league except Scottish League One/Two and the NIFL, which only the scheduled update can read (from BBC Sport).</p>
       <button class="btn" data-act="sync">↻ Update fixtures and scores now</button>
-      <label class="inline">Another Saturday <input type="date" id="other-day"></label>
-      <button class="btn small ghost" data-act="sync-other">Load that Saturday</button>
+      <h4 style="margin-top:16px">A different Saturday</h4>
+      <p class="muted tiny">Pick a date to load its matches and results early (for example next week), re-check a past week, or mark it as an international break.</p>
+      <input type="date" id="other-day">
+      <div class="btns"><button class="btn small ghost" data-act="sync-other">Load its matches</button><button class="btn small ghost" data-act="week-off-other">No game that Saturday</button></div>
       <ul class="plain tiny">${(log.data || []).map((l) => `<li class="row"><span>${new Date(l.ran_at).toLocaleString('en-GB', { timeZone: 'Europe/London', weekday: 'short', hour: '2-digit', minute: '2-digit' })}</span><span>${esc(l.source)} · ${l.fixtures} matches${l.errors ? ` · ${esc(l.errors)}` : ''}</span></li>`).join('')}</ul>
     </section>
     <section class="card"><h3>Players</h3><ul class="plain">
@@ -513,6 +535,21 @@ document.addEventListener('click', async (ev) => {
     return route();
   }
   if (act === 'reload') return route();
+  if (act === 'week-off' || act === 'week-off-other') {
+    ev.preventDefault();
+    const day = act === 'week-off' ? t.dataset.day : document.getElementById('other-day').value;
+    if (!day) return toast('Choose a date first.');
+    if (new Date(`${day}T12:00:00Z`).getUTCDay() !== 6) return toast('That date isn\'t a Saturday.');
+    const { error } = await sb.from('weeks_off').upsert({ week_id: day, reason: 'International break' });
+    toast(error ? (/weeks_off/.test(error.message) ? 'Re-run supabase/schema.sql in Supabase first.' : error.message) : `No game on ${dayLabel(day)}.`);
+    return route();
+  }
+  if (act === 'week-on') {
+    ev.preventDefault();
+    const { error } = await sb.from('weeks_off').delete().eq('week_id', t.dataset.day);
+    toast(error ? error.message : `The game is back on for ${dayLabel(t.dataset.day)}.`);
+    return route();
+  }
   if (act === 'signout') { await sb.auth.signOut(); return; }
   if (act === 'rename') {
     const name = document.getElementById('my-name').value.trim();
