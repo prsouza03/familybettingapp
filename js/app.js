@@ -384,10 +384,12 @@ async function viewAdmin() {
     </ul>
     <p class="muted tiny">Add someone who doesn't use the app (for example, picks on paper). Then enter their picks on My picks.</p>
     <div class="btns"><input id="new-player" placeholder="Name" maxlength="30"><button class="btn small" data-act="add-player">Add player</button></div></section>
-    <section class="card"><h3>Postponed or abandoned?</h3>
-      <p class="muted tiny">If the feed is slow to show a postponement, set it here. "Auto" goes back to the feed.</p><ul class="plain">`;
+    <section class="card"><h3>Scores and postponements</h3>
+      <p class="muted tiny">Fix a score or set a match as postponed if the feed is slow. "Auto" goes back to the feed for the status.</p><ul class="plain">`;
   for (const f of fixtures) {
     html += `<li class="row"><span class="tiny">${esc(leagueShort(f.league))}: ${esc(f.home)} v ${esc(f.away)} <b>${scoreText(f)}</b></span>
+      <span class="btns"><input class="sc" type="number" min="0" inputmode="numeric" data-score="${esc(f.id)}" data-side="home_score" value="${f.home_score ?? ''}" aria-label="Home score">
+      <input class="sc" type="number" min="0" inputmode="numeric" data-score="${esc(f.id)}" data-side="away_score" value="${f.away_score ?? ''}" aria-label="Away score"></span>
       <select data-status="${esc(f.id)}"><option value="">Auto${f.manual_status ? '' : ` (${f.status})`}</option>
       ${['scheduled', 'live', 'ft', 'postponed', 'abandoned'].map((s) => `<option value="${s}" ${f.manual_status && f.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select></li>`;
   }
@@ -525,6 +527,12 @@ document.addEventListener('change', async (ev) => {
     const patch = v ? { status: v, manual_status: true, updated_at: new Date().toISOString() } : { manual_status: false };
     const { error } = await sb.from('fixtures').update(patch).eq('id', t.dataset.status);
     toast(error ? error.message : v ? `Marked ${v}.` : 'Back to automatic. The next update will set it.');
+    return;
+  }
+  if (t.dataset.score) {
+    const v = t.value === '' ? null : Math.max(0, parseInt(t.value, 10));
+    const { error } = await sb.from('fixtures').update({ [t.dataset.side]: v, updated_at: new Date().toISOString() }).eq('id', t.dataset.score);
+    toast(error ? error.message : 'Score saved. Set the status to "ft" when it has finished.');
     return;
   }
   if (t.dataset.rename) {
