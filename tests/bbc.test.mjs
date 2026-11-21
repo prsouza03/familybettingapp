@@ -42,3 +42,12 @@ test('FA Cup and Scottish Cup 3pm ties are included; the Women\'s FA Cup is not'
   ] }] }];
   assert.deepEqual(parseBbc(g, '2026-11-21').map((r) => [r.league, r.home]), [['eng.facup', 'Chesterfield'], ['sco.cup', 'Annan']]);
 });
+
+test('extra-time goals do not count: the 90-minute score is used', () => {
+  // Real example: Brora Rangers 3-1 Cowdenbeath after extra time, 1-1 after 90 minutes.
+  const e = ev('y1', 'Scottish Cup', 'Brora', 'Cowdenbeath', '3', '1', 'PostEvent');
+  e.home.runningScores = { halftime: '0', fulltime: '1', extratime: '3' };
+  e.away.runningScores = { halftime: '0', fulltime: '1', extratime: '1' };
+  const [r] = parseBbc([{ secondaryGroups: [{ events: [e] }] }], '2026-11-21');
+  assert.deepEqual([r.home_score, r.away_score], [1, 1]);
+});

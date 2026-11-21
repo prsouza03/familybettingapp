@@ -33,7 +33,12 @@ export function parseBbc(groups, day) {
         if (!league) continue;
         if (ev.date?.isoDate !== day || ev.time?.displayTimeUK !== '15:00') continue;
         const status = mapBbcStatus(ev.status);
-        const score = (side) => (status === 'scheduled' || side?.score == null || side.score === '' ? null : Number(side.score));
+        // Extra-time goals don't count: once 90 minutes are up, the BBC keeps that score in runningScores.fulltime.
+        const score = (side) => {
+          if (status === 'scheduled') return null;
+          const v = side?.runningScores?.fulltime ?? side?.score;
+          return v == null || v === '' ? null : Number(v);
+        };
         out.push({
           id: `bbc-${ev.id}`,
           week_id: day,
