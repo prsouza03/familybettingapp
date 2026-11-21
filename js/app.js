@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
+import { SUPABASE_URL, SUPABASE_ANON_KEY, LOGIN_DOMAIN } from './config.js';
 import { LEAGUES, LEAGUE_BY_CODE, espnLeagues } from './leagues.js';
 import { fetchSaturday, currentSaturday, deadlineFor, londonDateTime } from './espn.js';
 import {
@@ -361,7 +361,9 @@ async function viewHistory(season) {
 
   html += `<section class="card"><h3>Your account</h3>
     <label>Your name <input id="my-name" value="${esc(state.me?.name || '')}" maxlength="30"></label>
-    <div class="btns"><button class="btn small" data-act="rename">Save name</button><button class="btn small ghost" data-act="signout">Sign out</button></div></section>`;
+    <label>New password <input id="my-pass" type="password" minlength="6" autocomplete="new-password" placeholder="Leave empty to keep it"></label>
+    <p class="muted tiny">You sign in with the name you signed up with. Changing your name here changes how it shows in the app, not your sign-in name.</p>
+    <div class="btns"><button class="btn small" data-act="rename">Save</button><button class="btn small ghost" data-act="signout">Sign out</button></div></section>`;
   $app.innerHTML = html;
 }
 
@@ -380,7 +382,7 @@ async function viewAdmin() {
       <ul class="plain tiny">${(log.data || []).map((l) => `<li class="row"><span>${new Date(l.ran_at).toLocaleString('en-GB', { timeZone: 'Europe/London', weekday: 'short', hour: '2-digit', minute: '2-digit' })}</span><span>${esc(l.source)} · ${l.fixtures} matches${l.errors ? ` · ${esc(l.errors)}` : ''}</span></li>`).join('')}</ul>
     </section>
     <section class="card"><h3>Players</h3><ul class="plain">
-      ${state.players.map((p) => `<li class="row"><input data-rename="${p.id}" value="${esc(p.name)}" maxlength="30"><span class="muted tiny">${p.user_id ? (p.is_admin ? 'admin' : 'has account') : 'no account'}</span></li>`).join('')}
+      ${state.players.map((p) => `<li class="row"><input data-rename="${p.id}" value="${esc(p.name)}" maxlength="30"><span class="muted tiny">${p.user_id ? (p.is_admin ? 'admin' : `<button class="btn small ghost" data-reset="${p.id}">Reset password</button>`) : 'no account'}</span></li>`).join('')}
     </ul>
     <p class="muted tiny">Add someone who doesn't use the app (for example, picks on paper). Then enter their picks on My picks.</p>
     <div class="btns"><input id="new-player" placeholder="Name" maxlength="30"><button class="btn small" data-act="add-player">Add player</button></div></section>
@@ -399,41 +401,46 @@ async function viewAdmin() {
   $app.innerHTML = html;
 }
 
-// ---------- sign in ----------
+// ---------- sign in (name + password, no email needed) ----------
+// Supabase needs an email-shaped login, so each name becomes a private login id
+// like "patrick@<LOGIN_DOMAIN>". No email is ever sent to it.
+export const loginId = (name) => {
+  const slug = String(name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  return slug.length >= 2 ? `${slug}@${LOGIN_DOMAIN}` : null;
+};
+
 function viewAuth(mode = 'in') {
   $tabs.hidden = true;
   $who.textContent = '';
-  const recovery = mode === 'recover';
-  $app.innerHTML = `<section class="hero"><h1>${recovery ? 'Set a new password' : mode === 'up' ? 'Join the family game' : 'Welcome back'}</h1></section>
+  $app.innerHTML = `<section class="hero"><h1>${mode === 'up' ? 'Join the family game' : 'Welcome back'}</h1></section>
   <form class="card" id="auth" data-mode="${mode}">
-    ${mode === 'up' ? '<label>Your name <input name="name" required maxlength="30" autocomplete="nickname"></label>' : ''}
-    ${recovery ? '' : '<label>Email <input name="email" type="email" required autocomplete="email"></label>'}
-    ${mode === 'forgot' ? '' : `<label>${recovery ? 'New password' : 'Password'} <input name="password" type="password" required minlength="6" autocomplete="${mode === 'in' ? 'current-password' : 'new-password'}"></label>`}
-    <button class="btn" type="submit">${{ in: 'Sign in', up: 'Create account', forgot: 'Email me a reset link', recover: 'Save password' }[mode]}</button>
-    ${mode === 'in' ? '<p class="center"><a href="#" data-mode="up">New here? Create an account</a><br><a href="#" data-mode="forgot" class="tiny">Forgot password?</a></p>' : ''}
-    ${mode !== 'in' && !recovery ? '<p class="center"><a href="#" data-mode="in">Back to sign in</a></p>' : ''}
+    <label>Your name <input name="name" required maxlength="30" autocomplete="username" autocapitalize="words"></label>
+    <label>Password <input name="password" type="password" required minlength="6" autocomplete="${mode === 'in' ? 'current-password' : 'new-password'}"></label>
+    ${mode === 'up' ? '<p class="muted tiny">Use the name the family knows you by. You\'ll sign in with this name and password.</p>' : ''}
+    <button class="btn" type="submit">${mode === 'up' ? 'Create account' : 'Sign in'}</button>
+    ${mode === 'in'
+    ? '<p class="center"><a href="#" data-mode="up">New here? Create an account</a><br><span class="muted tiny">Forgot your password? Ask the admin to reset it.</span></p>'
+    : '<p class="center"><a href="#" data-mode="in">Back to sign in</a></p>'}
   </form>`;
 }
 
 async function submitAuth(form) {
   const mode = form.dataset.mode;
   const v = Object.fromEntries(new FormData(form));
+  const name = v.name.trim().replace(/\s+/g, ' ');
+  const email = loginId(name);
+  if (!email) return toast('Please use a name with at least 2 letters.');
   const btn = form.querySelector('button');
   btn.disabled = true;
   try {
     let r;
-    if (mode === 'in') r = await sb.auth.signInWithPassword({ email: v.email, password: v.password });
-    if (mode === 'up') {
-      r = await sb.auth.signUp({ email: v.email, password: v.password, options: { data: { name: v.name.trim() }, emailRedirectTo: location.origin + location.pathname } });
-      if (!r.error && !r.data.session) toast('Check your email to confirm your account, then sign in.', 8000);
-    }
-    if (mode === 'forgot') {
-      r = await sb.auth.resetPasswordForEmail(v.email, { redirectTo: location.origin + location.pathname });
-      if (!r.error) toast('If that email has an account, a reset link is on its way.', 8000);
-    }
-    if (mode === 'recover') {
-      r = await sb.auth.updateUser({ password: v.password });
-      if (!r.error) { toast('Password changed.'); state.recovering = false; start(); }
+    if (mode === 'in') {
+      r = await sb.auth.signInWithPassword({ email, password: v.password });
+      if (r.error && /invalid/i.test(r.error.message)) return toast('That name and password don\'t match. Check the spelling of your name.', 6000);
+    } else {
+      r = await sb.auth.signUp({ email, password: v.password, options: { data: { name } } });
+      if (r.error && /already/i.test(r.error.message)) return toast(`Someone has already signed up as "${name}". Sign in instead, or add an initial.`, 7000);
+      if (!r.error && !r.data.session) return toast('Account made, but Supabase wants email confirmation. Turn off "Confirm email" in Supabase.', 9000);
     }
     if (r?.error) toast(r.error.message, 6000);
   } finally { btn.disabled = false; }
@@ -442,7 +449,6 @@ async function submitAuth(form) {
 // ---------- routing and events ----------
 async function route() {
   if (!state.session) return viewAuth();
-  if (state.recovering) return viewAuth('recover');
   const hash = location.hash.replace(/^#\/?/, '');
   const [tab, arg] = hash.split('/');
   for (const a of $tabs.querySelectorAll('a')) a.classList.toggle('active', a.dataset.tab === (tab === 'week' ? 'history' : tab));
@@ -470,7 +476,7 @@ async function syncDay(day) {
 }
 
 document.addEventListener('click', async (ev) => {
-  const t = ev.target.closest('[data-act],[data-fx],[data-mode]');
+  const t = ev.target.closest('[data-act],[data-fx],[data-mode],[data-reset]');
   if (!t) return;
   if (t.dataset.mode && t.tagName === 'A') { ev.preventDefault(); return viewAuth(t.dataset.mode); }
   if (t.dataset.fx) {
@@ -487,7 +493,18 @@ document.addEventListener('click', async (ev) => {
     save.textContent = 'Save picks';
     return;
   }
+  if (t.dataset.reset) {
+    const box = t.parentElement;
+    box.innerHTML = `<span class="btns"><input type="text" placeholder="New password" minlength="6" id="np-${t.dataset.reset}"><button class="btn small" data-act="do-reset" data-player="${t.dataset.reset}">Set</button></span>`;
+    return;
+  }
   const act = t.dataset.act;
+  if (act === 'do-reset') {
+    const pw = document.getElementById(`np-${t.dataset.player}`).value;
+    if (pw.length < 6) return toast('Passwords need at least 6 characters.');
+    const { error } = await sb.rpc('admin_reset_password', { player: t.dataset.player, new_password: pw });
+    return toast(error ? error.message : 'Password reset. Tell them their new password.', 6000);
+  }
   if (act === 'save-picks') return savePicks();
   if (act === 'sync') return syncDay(state.week);
   if (act === 'sync-other') { const d = document.getElementById('other-day').value; return d ? syncDay(d) : toast('Choose a date first.'); }
@@ -499,7 +516,15 @@ document.addEventListener('click', async (ev) => {
   if (act === 'signout') { await sb.auth.signOut(); return; }
   if (act === 'rename') {
     const name = document.getElementById('my-name').value.trim();
-    if (!name) return;
+    const pass = document.getElementById('my-pass').value;
+    if (pass) {
+      if (pass.length < 6) return toast('Passwords need at least 6 characters.');
+      const { error } = await sb.auth.updateUser({ password: pass });
+      if (error) return toast(error.message);
+      document.getElementById('my-pass').value = '';
+      toast('Password changed.');
+    }
+    if (!name || name === state.me.name) return;
     const { error } = await sb.from('players').update({ name }).eq('id', state.me.id);
     if (error) return toast(error.message);
     await loadPlayers(); renderWho(); toast('Name saved.');
@@ -581,8 +606,7 @@ async function start() {
 sb.auth.onAuthStateChange((event, session) => {
   const changed = (session?.user?.id || null) !== (state.session?.user?.id || null);
   state.session = session;
-  if (event === 'PASSWORD_RECOVERY') state.recovering = true;
-  if (event === 'INITIAL_SESSION' || changed || event === 'PASSWORD_RECOVERY') setTimeout(start, 0);
+  if (event === 'INITIAL_SESSION' || changed) setTimeout(start, 0);
 });
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

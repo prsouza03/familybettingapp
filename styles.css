@@ -88,3 +88,7 @@ th { color: var(--muted); font-weight: 600; }
 code { background: var(--card2); padding: 1px 5px; border-radius: 5px; }
 @media (min-width: 700px) { .hero h1 { font-size: 30px; } }
 .sc { width: 54px !important; flex: none !important; margin: 0 !important; padding: 6px !important; }
+.tabs[hidden] { display: none; }
+.row .btns { flex-wrap: nowrap; }
+.row .btns input[id^="np-"] { width: 120px; flex: none; margin: 0; padding: 7px; }
+.row .btns .btn { margin: 0; }

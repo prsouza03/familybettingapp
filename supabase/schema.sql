@@ -72,17 +72,36 @@ language sql immutable as $$
 $$;
 
 -- New sign-ups get a player row. The very first person to sign up is the admin.
+-- If the admin already added this person by name (no account yet), the account is linked to them,
+-- so their earlier weeks stay theirs.
 create or replace function public.handle_new_user() returns trigger
 language plpgsql security definer set search_path = public as $$
+declare
+  nm text := coalesce(nullif(trim(new.raw_user_meta_data->>'name'), ''), split_part(new.email, '@', 1));
+  existing uuid;
 begin
-  insert into players (user_id, name, is_admin)
-  values (
-    new.id,
-    coalesce(nullif(trim(new.raw_user_meta_data->>'name'), ''), split_part(new.email, '@', 1)),
-    not exists (select 1 from players where is_admin)
-  );
+  select id into existing from players where user_id is null and lower(name) = lower(nm) order by created_at limit 1;
+  if existing is not null then
+    update players set user_id = new.id where id = existing;
+  else
+    insert into players (user_id, name, is_admin)
+    values (new.id, nm, not exists (select 1 from players where is_admin));
+  end if;
   return new;
 end $$;
+
+-- The admin can set a new password for a player who forgot theirs (there is no email to reset with).
+create or replace function public.admin_reset_password(player uuid, new_password text)
+returns void language plpgsql security definer set search_path = public, extensions as $$
+begin
+  if not public.is_admin() then raise exception 'Only the admin can reset passwords'; end if;
+  if length(new_password) < 6 then raise exception 'Passwords need at least 6 characters'; end if;
+  update auth.users set encrypted_password = crypt(new_password, gen_salt('bf')), updated_at = now()
+  where id = (select user_id from players where id = player);
+  if not found then raise exception 'That player has no account'; end if;
+end $$;
+revoke all on function public.admin_reset_password(uuid, text) from public, anon;
+grant execute on function public.admin_reset_password(uuid, text) to authenticated;
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users

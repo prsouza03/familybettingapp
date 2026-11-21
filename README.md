@@ -27,8 +27,7 @@ Results update by themselves on **Friday evening** (to load fixtures) and on **S
 ### 1. Create the database (Supabase)
 1. Sign up free at <https://supabase.com> and create a new project. Pick the London region if it's offered.
 2. Open **SQL Editor → New query**, paste in all of [`supabase/schema.sql`](supabase/schema.sql), then press **Run**.
-3. Open **Authentication → Sign In / Providers → Email** and turn **off** "Confirm email". This lets the family sign up without a confirmation email. You can leave it on if you prefer.
-4. Open **Authentication → URL Configuration** and set **Site URL** to the app's address from step 3 below.
+3. Open **Authentication → Sign In / Providers**. Make sure **Allow new users to sign up** is on. Then open **Email**, keep **Enable Email provider** on, and turn **off** "Confirm email". The family signs in with **name and password**, so no real email is ever used, but Supabase still needs its email sign-in switched on.
 5. Open **Project Settings → API** (or **API Keys**) and copy:
    - the **Project URL**,
    - the **anon / publishable** key, which goes in the app,
@@ -48,7 +47,7 @@ Open the repo's **Settings → Secrets and variables → Actions → New reposit
 Then open **Actions → Update results → Run workflow** once to check that it works. The log lists how many matches it found in each league.
 
 ### 5. Sign up first
-**The first person to create an account becomes the admin.** Then send the link to the family:
+**The first person to create an account becomes the admin.** Everyone signs in with their **name and password**, with no email needed. If someone forgets their password, the admin resets it on the Admin page. If the admin already added someone by name, such as Grandad, and they later sign up with the same name, their account is linked to their earlier weeks. Then send the link to the family:
 - **iPhone / iPad:** open the link in Safari, tap **Share**, then **Add to Home Screen**.
 - **Android:** open the link in Chrome, tap **⋮**, then **Add to Home screen** (or **Install app**).
 
