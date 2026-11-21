@@ -436,7 +436,7 @@ function viewAuth(mode = 'in') {
   $who.textContent = '';
   $app.innerHTML = `<section class="hero"><h1>${mode === 'up' ? 'Join the family game' : 'Welcome back'}</h1></section>
   <form class="card" id="auth" data-mode="${mode}">
-    <label>Your name <input name="name" required maxlength="30" autocomplete="username" autocapitalize="words"></label>
+    <label>Your name <input name="name" required maxlength="30" autocomplete="username" autocapitalize="words" autocorrect="off" spellcheck="false"></label>
     <label>Password <input name="password" type="password" required minlength="6" autocomplete="${mode === 'in' ? 'current-password' : 'new-password'}"></label>
     ${mode === 'up' ? '<p class="muted tiny">Use the name the family knows you by. You\'ll sign in with this name and password.</p>' : ''}
     <button class="btn" type="submit">${mode === 'up' ? 'Create account' : 'Sign in'}</button>
