@@ -1,0 +1,31 @@
+name: Update results
+
+# GitHub runs schedules in UTC and can start them up to ~15 minutes late.
+# UK winter (GMT) = UTC; UK summer (BST) = UTC+1, so each UK time is listed twice.
+on:
+  schedule:
+    - cron: '0 18 * * 5'          # Friday 6pm/7pm UK: load Saturday's 3pm fixtures
+    - cron: '0 9 * * 6'           # Saturday morning: refresh fixtures (late postponements)
+    - cron: '50 14,15 * * 6'      # 3:50pm UK (summer and winter)
+    - cron: '0 16,17 * * 6'       # 5pm UK (summer and winter)
+    - cron: '30 16,17 * * 6'      # extra check for late finishes
+  workflow_dispatch:
+    inputs:
+      day:
+        description: 'Saturday to update (YYYY-MM-DD). Leave empty for this week.'
+        required: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/update-results.mjs $DAY
+        env:
+          DAY: ${{ github.event.inputs.day }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
