@@ -52,5 +52,5 @@ test('a failing league is reported, not fatal', async () => {
     : { ok: true, json: async () => ({ events: [ev('7', '2026-11-21T15:00Z', 'X', 'Y', '1', '0', FT)] }) });
   const { fixtures, errors } = await fetchSaturday('2026-11-21', fake);
   assert.equal(errors.length, 1);
-  assert.equal(fixtures.length, 9);
+  assert.equal(fixtures.length, 6); // 7 ESPN leagues, one failed
 });

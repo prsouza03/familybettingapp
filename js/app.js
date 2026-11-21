@@ -1,6 +1,6 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
-import { LEAGUES, LEAGUE_BY_CODE } from './leagues.js';
+import { LEAGUES, LEAGUE_BY_CODE, espnLeagues } from './leagues.js';
 import { fetchSaturday, currentSaturday, deadlineFor, londonDateTime } from './espn.js';
 import {
   PICKS_PER_WEEK, MAX_POINTS, ENTRY_FEE, isOff, matchPoints, sortFixtures, resolvePicks, weekStandings, seasonStats,
@@ -111,7 +111,7 @@ async function pullLive(day, save = false) {
   for (const f of fixtures) liveOverlay.set(f.id, f);
   if (save) {
     const failed = new Set(errors.map((e) => e.split(':')[0]));
-    const leagues = LEAGUES.map((l) => l.code).filter((c) => !failed.has(c));
+    const leagues = espnLeagues().map((l) => l.code).filter((c) => !failed.has(c));
     const { error } = await sb.rpc('sync_fixtures', { week: day, rows: fixtures, leagues, source: 'admin' });
     if (error) throw error;
   }
@@ -373,7 +373,7 @@ async function viewAdmin() {
   const [{ fixtures }, log] = await Promise.all([loadWeek(day), sb.from('sync_log').select('*').order('ran_at', { ascending: false }).limit(6)]);
   let html = `<section class="hero"><h1>Admin</h1><div class="muted">${dayLabel(day)}</div></section>
     <section class="card"><h3>Results</h3>
-      <p class="muted tiny">Results update by themselves on Saturday at about 3:50pm and 5pm, plus 4:30pm and 5:30pm. Fixtures load on Friday evening.</p>
+      <p class="muted tiny">Results update by themselves on Saturday at about 3:50pm and 5pm, plus 4:30pm and 5:30pm. Fixtures load on Friday evening. The button below updates every league except Scottish League One/Two and the NIFL, which only the scheduled update can read (from BBC Sport).</p>
       <button class="btn" data-act="sync">↻ Update fixtures and scores now</button>
       <label class="inline">Another Saturday <input type="date" id="other-day"></label>
       <button class="btn small ghost" data-act="sync-other">Load that Saturday</button>

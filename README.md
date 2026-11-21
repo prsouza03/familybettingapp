@@ -16,11 +16,11 @@ A free web app for the family's Saturday 3pm football picks game. Install it to 
 |---|---|---|
 | The app (website) | GitHub Pages | Free |
 | Logins, picks, results | Supabase free plan | Free |
-| Fixtures and scores | ESPN's public scoreboard feed | Free |
+| Fixtures and scores | ESPN's public scoreboard feed, plus BBC Sport's scores page for Scottish League One/Two and the NIFL (ESPN stopped covering those in 2025) | Free |
 | Automatic updates | GitHub Actions schedule | Free |
 | Reading screenshots | Tesseract, running on the phone | Free |
 
-Results update by themselves on **Friday evening** (to load fixtures) and on **Saturday at about 9am, 3:50pm, 4:30pm, 5pm and 5:30pm** UK time. GitHub can start these up to about 15 minutes late. During the games, the app also pulls live scores every 2 minutes while it's open. The admin has a **Refresh** button as well.
+Results update by themselves on **Friday evening** (to load fixtures) and on **Saturday at about 9am, 3:50pm, 4:30pm, 5pm and 5:30pm** UK time. GitHub can start these up to about 15 minutes late. During the games, the app also pulls live scores every 2 minutes while it's open. The admin has a **Refresh** button as well. Scottish League One/Two and NIFL scores come only from the scheduled updates, because browsers can't read the BBC page directly. The BBC source is unofficial: if the BBC changes its page, the update log will say so, and the admin can type those scores in by hand until it's fixed.
 
 ## One-time setup (about 15 minutes)
 

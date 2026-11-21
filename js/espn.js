@@ -1,6 +1,6 @@
 // Reads fixtures and scores from ESPN's free public scoreboard feed.
 // Works in Node 20+ (the scheduled job) and in the browser (the refresh button).
-import { LEAGUES } from './leagues.js';
+import { espnLeagues } from './leagues.js';
 
 const BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer';
 
@@ -60,7 +60,7 @@ export function parseScoreboard(json, leagueCode, day) {
 
 // Fetch every league for one Saturday. Returns { fixtures, errors }.
 export async function fetchSaturday(day, fetchImpl = fetch) {
-  const results = await Promise.all(LEAGUES.map(async (l) => {
+  const results = await Promise.all(espnLeagues().map(async (l) => {
     try {
       const res = await fetchImpl(`${BASE}/${l.code}/scoreboard?dates=${compact(day)}&limit=200`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);

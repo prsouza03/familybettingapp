@@ -2,7 +2,8 @@
 // Run by GitHub Actions on a schedule. Needs SUPABASE_URL and SUPABASE_SERVICE_KEY.
 // Usage: node scripts/update-results.mjs [YYYY-MM-DD]
 import { fetchSaturday, currentSaturday } from '../js/espn.js';
-import { LEAGUES } from '../js/leagues.js';
+import { fetchBbcSaturday } from '../js/bbc.js';
+import { LEAGUES, espnLeagues } from '../js/leagues.js';
 
 const url = process.env.SUPABASE_URL?.replace(/\/$/, '');
 const key = process.env.SUPABASE_SERVICE_KEY;
@@ -14,10 +15,20 @@ if (!url || !key) {
 const day = process.argv[2] || currentSaturday();
 console.log(`Updating 3pm fixtures for Saturday ${day}`);
 
-const { fixtures, errors } = await fetchSaturday(day);
-for (const e of errors) console.warn(`Could not fetch ${e}`);
-const failed = new Set(errors.map((e) => e.split(':')[0]));
-const okLeagues = LEAGUES.map((l) => l.code).filter((c) => !failed.has(c));
+// ESPN: most leagues.
+const espn = await fetchSaturday(day);
+for (const e of espn.errors) console.warn(`Could not fetch ${e}`);
+const failed = new Set(espn.errors.map((e) => e.split(':')[0]));
+const okLeagues = espnLeagues().map((l) => l.code).filter((c) => !failed.has(c));
+const fixtures = [...espn.fixtures];
+
+// BBC Sport: Scottish League One/Two and NIFL Premiership.
+try {
+  fixtures.push(...await fetchBbcSaturday(day));
+  okLeagues.push(...LEAGUES.filter((l) => l.source === 'bbc').map((l) => l.code));
+} catch (e) {
+  console.warn(`Could not fetch BBC Sport: ${e.message}`);
+}
 
 if (okLeagues.length === 0) {
   console.error('Every league failed to load. Nothing saved.');
