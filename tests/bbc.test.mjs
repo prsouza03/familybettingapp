@@ -32,3 +32,13 @@ test('reads the page data and keeps only 3pm games in the BBC-covered leagues', 
 test('a changed page layout is reported clearly', () => {
   assert.throws(() => extractEventGroups('<html></html>'), /layout changed/);
 });
+
+test('FA Cup and Scottish Cup 3pm ties are included; the Women\'s FA Cup is not', () => {
+  const g = [{ displayLabel: 'Cups', secondaryGroups: [{ events: [
+    ev('x1', 'FA Cup', 'Chesterfield', 'Cheltenham', '', '', 'PreEvent'),
+    ev('x2', 'Scottish Cup', 'Annan', 'Morton', '2', '2', 'PostEvent'),
+    ev('x3', "Women's FA Cup", 'Lewes', 'Rugby', '1', '0', 'PostEvent'),
+    ev('x4', 'FA Cup', 'Late', 'Kick', '', '', 'PreEvent', '17:15'),
+  ] }] }];
+  assert.deepEqual(parseBbc(g, '2026-11-21').map((r) => [r.league, r.home]), [['eng.facup', 'Chesterfield'], ['sco.cup', 'Annan']]);
+});

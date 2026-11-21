@@ -4,11 +4,11 @@ A free web app for the family's Saturday 3pm football picks game. Install it to 
 
 ## The rules it follows
 
-- Each player picks **10 matches** that kick off at **3pm UK time** on Saturday. Players can pick from the English Premier League down to the National League, the Scottish Premiership down to League Two, and the NIFL Premiership.
+- Each player picks **10 matches** that kick off at **3pm UK time** on Saturday. Players can pick from the English Premier League down to the National League, the Scottish Premiership down to League Two, and the NIFL Premiership, plus **FA Cup** and **Scottish Cup** ties that kick off at 3pm.
 - A match scores **1 point** if one team scores and **2 points** if both teams score. The maximum is **20**.
 - Entry is **£10**. The highest score wins the pot, and a tie splits it equally.
 - Picks lock at 3pm, and everyone's picks become visible then.
-- **Postponed or abandoned:** the pick moves to the next 3pm match below it on Flashscore, in the same league. If it was the last match in its league, it moves to the first match of the next league down (Premier League → Championship → League One → League Two → National League, and the same in Scotland). It skips matches that are also off and matches the player already picked. After the National League, Scottish League Two or the NIFL Premiership, the player chooses a replacement on **My picks**. The admin can also set a postponement by hand.
+- **Postponed or abandoned:** the pick moves to the next 3pm match below it on Flashscore, in the same league. If it was the last match in its league, it moves to the first match of the next league down (Premier League → Championship → League One → League Two → National League, and the same in Scotland). It skips matches that are also off and matches the player already picked. A postponed cup tie moves only to the next tie in the same cup. After the National League, Scottish League Two, the NIFL Premiership or the last cup tie, the player chooses a replacement on **My picks**. The admin can also set a postponement by hand.
 
 ## How it works (all free)
 
@@ -16,7 +16,7 @@ A free web app for the family's Saturday 3pm football picks game. Install it to 
 |---|---|---|
 | The app (website) | GitHub Pages | Free |
 | Logins, picks, results | Supabase free plan | Free |
-| Fixtures and scores | ESPN's public scoreboard feed, plus BBC Sport's scores page for Scottish League One/Two and the NIFL (ESPN stopped covering those in 2025) | Free |
+| Fixtures and scores | ESPN's public scoreboard feed, plus BBC Sport's scores page for Scottish League One/Two, the NIFL, the FA Cup and the Scottish Cup (ESPN stopped covering those in 2025) | Free |
 | Automatic updates | GitHub Actions schedule | Free |
 | Reading screenshots | Tesseract, running on the phone | Free |
 

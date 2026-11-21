@@ -395,7 +395,7 @@ async function viewAdmin() {
       <p class="muted tiny">To mark a later Saturday, choose its date under "A different Saturday" below.</p>
     </section>
     <section class="card"><h3>Results</h3>
-      <p class="muted tiny">Results update by themselves on Saturday at about 3:50pm and 5pm, plus 4:30pm and 5:30pm. Fixtures load on Sunday morning and are refreshed on Wednesday, Friday evening and Saturday morning. The button below updates every league except Scottish League One/Two and the NIFL, which only the scheduled update can read (from BBC Sport).</p>
+      <p class="muted tiny">Results update by themselves on Saturday at about 3:50pm and 5pm, plus 4:30pm and 5:30pm. Fixtures load on Sunday morning and are refreshed on Wednesday, Friday evening and Saturday morning. The button below updates every league except Scottish League One/Two, the NIFL and the FA Cup and Scottish Cup, which only the scheduled update can read (from BBC Sport).</p>
       <button class="btn" data-act="sync">↻ Update fixtures and scores now</button>
       <h4 style="margin-top:16px">A different Saturday</h4>
       <p class="muted tiny">Pick a date to load its matches and results early (for example next week), re-check a past week, or mark it as an international break.</p>

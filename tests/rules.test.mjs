@@ -109,3 +109,16 @@ test('week is not finished while a match is still live', () => {
   assert.equal(s.finished, false);
   assert.equal(s.rows[0].winnings, 0);
 });
+
+test('a postponed cup tie rolls to the next tie in the same cup, never into a league', () => {
+  const cup = [fx('eng.facup', 'Barnet', 'Wrexham', 0, 0, 'postponed'), fx('eng.facup', 'York', 'Bolton', 1, 1)];
+  const fixtures = [...cup, fx('eng.5', 'Aldershot', 'Boston', 1, 1)];
+  assert.equal(resolvePicks([{ fixture_id: cup[0].id, slot: 1 }], fixtures)[0].effective.home, 'York');
+  const last = [fx('eng.facup', 'York', 'Bolton', 0, 0, 'postponed'), fx('eng.1', 'Arsenal', 'Spurs', 1, 1)];
+  assert.equal(resolvePicks([{ fixture_id: last[0].id, slot: 1 }], last)[0].how, 'needs-pick');
+});
+
+test('cups sit after their country\'s leagues in the list', () => {
+  const list = [fx('sco.cup', 'A', 'B', 0, 0), fx('eng.facup', 'C', 'D', 0, 0), fx('sco.4', 'E', 'F', 0, 0), fx('eng.5', 'G', 'H', 0, 0), fx('nir.1', 'I', 'J', 0, 0)];
+  assert.deepEqual(sortFixtures(list).map((f) => f.league), ['eng.5', 'eng.facup', 'sco.4', 'sco.cup', 'nir.1']);
+});
