@@ -266,8 +266,9 @@ async function viewPicks() {
   }
   const chosen = new Set(state.draft.ids);
   html += `<section class="card"><h3>Read my Flashscore screenshot</h3>
-    <p class="muted tiny">Take a screenshot of your Favourites in Flashscore, then choose it here. The app picks out the matches. Check them below before saving.</p>
-    <label class="btn ghost file">📷 Choose screenshot<input type="file" accept="image/*" id="shot" hidden></label>
+    <p class="muted tiny">Take screenshots of your Favourites in Flashscore, then choose them here. You can pick several at once, or add them one after another: each one adds its matches to your list, up to ${PICKS_PER_WEEK}. Check them below before saving.</p>
+    <div class="btns"><label class="btn ghost file">📷 ${chosen.size ? 'Add screenshot' : 'Choose screenshots'}<input type="file" accept="image/*" id="shot" multiple hidden></label>
+    ${chosen.size ? '<button class="btn small ghost" data-act="clear-picks">Untick all</button>' : ''}</div>
     <div id="ocr-status" class="muted tiny"></div></section>`;
 
   for (const l of LEAGUES) {
@@ -536,6 +537,7 @@ document.addEventListener('click', async (ev) => {
     return toast(error ? error.message : 'Password reset. Tell them their new password.', 6000);
   }
   if (act === 'save-picks') return savePicks();
+  if (act === 'clear-picks') { state.draft.ids = []; state.draft.found = new Map(); return route(); }
   if (act === 'sync') return syncDay(state.week);
   if (act === 'sync-other') { const d = document.getElementById('other-day').value; return d ? syncDay(d) : toast('Choose a date first.'); }
   if (act === 'live') {
@@ -617,19 +619,39 @@ document.addEventListener('change', async (ev) => {
     await loadPlayers();
     return;
   }
-  if (t.id === 'shot' && t.files[0]) {
+  if (t.id === 'shot' && t.files.length) {
+    // Each screenshot ADDS its matches to the ones already ticked, up to 10.
     const status = document.getElementById('ocr-status');
+    const files = [...t.files];
+    t.value = '';
     try {
-      status.textContent = 'Reading screenshot…';
-      const lines = await readScreenshot(t.files[0], (p) => { status.textContent = `Reading screenshot… ${p}%`; });
       const { fixtures } = await loadWeek(state.week);
-      const found = matchScreenshot(lines, fixtures.filter((f) => !isOff(f)));
-      if (!found.length) { status.textContent = 'No matches recognised. Tick your matches below instead.'; return; }
-      state.draft.ids = found.map((x) => x.fixture.id);
-      state.draft.found = new Map(found.map((x) => [x.fixture.id, x.confidence]));
+      const open = fixtures.filter((f) => !isOff(f));
+      const ids = state.draft.ids;
+      let added = 0, unsure = 0, overflow = 0, seen = 0;
+      for (const [i, file] of files.entries()) {
+        const label = files.length > 1 ? `screenshot ${i + 1} of ${files.length}` : 'screenshot';
+        status.textContent = `Reading ${label}…`;
+        const lines = await readScreenshot(file, (p) => { status.textContent = `Reading ${label}… ${p}%`; });
+        for (const x of matchScreenshot(lines, open, 40)) {
+          seen += 1;
+          if (ids.includes(x.fixture.id)) continue;
+          if (ids.length >= PICKS_PER_WEEK) { overflow += 1; continue; }
+          ids.push(x.fixture.id);
+          state.draft.found.set(x.fixture.id, x.confidence);
+          added += 1;
+          if (x.confidence === 'one') unsure += 1;
+        }
+      }
       await route();
-      const unsure = found.filter((x) => x.confidence === 'one').length;
-      toast(`Found ${plural(found.length, 'match', 'es')}.${unsure ? ` Check the ${unsure} marked "check".` : ''} Then tap Save.`, 7000);
+      const msg = !seen ? 'No matches recognised. Tick your matches in the list instead.'
+        : `Added ${plural(added, 'match', 'es')}, now ${ids.length}/${PICKS_PER_WEEK}.`
+          + (unsure ? ` Check the ${unsure} marked "check".` : '')
+          + (overflow ? ` ${overflow} more found, but you already have ${PICKS_PER_WEEK}: untick one to swap.` : '')
+          + (ids.length < PICKS_PER_WEEK ? ' Add another screenshot or tick the rest.' : ' Then tap Save.');
+      toast(msg, 8000);
+      const st = document.getElementById('ocr-status');
+      if (st) st.textContent = msg;
     } catch (e) {
       status.textContent = e.message;
     }

@@ -53,7 +53,7 @@ Then open **Actions → Update results → Run workflow** once to check that it 
 
 ## Using it
 
-- **My picks:** tap **Choose screenshot** and pick your Flashscore Favourites screenshot. The app ticks the matches it recognises, and marks with **check** any it found from only one team. Fix anything it got wrong, then tap **Save picks**. You can also just tick the matches yourself.
+- **My picks:** tap **Choose screenshots** and pick one or more Flashscore Favourites screenshots. Each screenshot adds its matches to your list, up to 10, so you can add a second one if your matches don't fit on one screen. The app ticks the matches it recognises, and marks with **check** any it found from only one team. Fix anything it got wrong, then tap **Save picks**. You can also just tick the matches yourself.
 - **Saturday:** before 3pm it shows who's in and the pot. After 3pm it shows the live table. Tap a name to see their 10 matches. When everything has finished, it names the winner and their winnings.
 - **History:** a money table (wins, winnings, profit), the highest score, the 20-point club, lucky teams, winning runs and every past Saturday.
 - **Admin:** mark a Saturday as **no game** (international break), refresh results, load another Saturday, mark matches postponed by hand, rename players and add players who don't use the app (then enter their picks on **My picks** with "Entering picks for").
