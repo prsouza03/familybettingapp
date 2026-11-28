@@ -8,9 +8,8 @@ on:
     - cron: '0 9 * * 3'           # Wednesday: refresh them
     - cron: '0 18 * * 5'          # Friday 6pm/7pm UK: refresh Saturday's 3pm fixtures
     - cron: '0 9 * * 6'           # Saturday morning: refresh fixtures (late postponements)
-    - cron: '50 14,15 * * 6'      # 3:50pm UK (summer and winter)
-    - cron: '0 16,17 * * 6'       # 5pm UK (summer and winter)
-    - cron: '30 16,17 * * 6'      # extra check for late finishes
+    - cron: '5,15,25,35,45,55 14,15,16 * * 6'  # every 10 minutes during the 3pm games (covers GMT and BST)
+    - cron: '5,25,45 17 * * 6'    # late finishes and final check
   workflow_dispatch:
     inputs:
       day:
