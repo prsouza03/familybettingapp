@@ -186,7 +186,10 @@ async function viewWeek(day, { current }) {
 
   if (current && isMatchWindow(day)) {
     state.liveTimer = setInterval(async () => {
-      try { await pullLive(day); if (location.hash === '' || location.hash === '#/') route(); } catch { /* keep stored scores */ }
+      try {
+        try { await serverRefresh(day); liveOverlay.clear(); } catch { await pullLive(day); }
+        if (location.hash === '' || location.hash === '#/') route();
+      } catch { /* keep stored scores */ }
     }, 120000);
   }
 }
@@ -495,13 +498,27 @@ async function route() {
   }
 }
 
-async function syncDay(day) {
-  toast('Fetching results…');
+// Ask the server to update every league (including the BBC ones) and save the scores.
+async function serverRefresh(day) {
+  const { data, error } = await sb.functions.invoke('update-results', { body: { day } });
+  if (error) throw error;
+  return data;
+}
+
+async function syncDay(day, { quiet = false } = {}) {
+  if (!quiet) toast('Fetching results…');
   try {
-    const n = await pullLive(day, true);
-    toast(`Updated ${plural(n, 'match', 'es')}.`);
-  } catch (e) {
-    toast(`${e.message} The scheduled update still runs.`, 6000);
+    const r = await serverRefresh(day);
+    liveOverlay.clear(); // the saved scores are now the newest
+    toast(r?.skipped ? 'Scores were updated less than a minute ago.' : `Updated ${plural(r?.saved ?? 0, 'match', 'es')}.`);
+  } catch {
+    // Server update not set up yet: fall back to what this device can fetch (all but the BBC leagues).
+    try {
+      const n = await pullLive(day, !!state.me?.is_admin);
+      toast(`Updated ${plural(n, 'match', 'es')}. Scottish League One/Two, NIFL and cup scores come with the next scheduled update.`, 6000);
+    } catch (e) {
+      toast(`${e.message} The scheduled update still runs.`, 6000);
+    }
   }
   route();
 }
@@ -540,10 +557,7 @@ document.addEventListener('click', async (ev) => {
   if (act === 'clear-picks') { state.draft.ids = []; state.draft.found = new Map(); return route(); }
   if (act === 'sync') return syncDay(state.week);
   if (act === 'sync-other') { const d = document.getElementById('other-day').value; return d ? syncDay(d) : toast('Choose a date first.'); }
-  if (act === 'live') {
-    try { await pullLive(state.week); } catch (e) { toast(e.message); }
-    return route();
-  }
+  if (act === 'live') return syncDay(state.week);
   if (act === 'reload') return route();
   if (act === 'share') {
     const data = { title: 'Family Picks', text: 'Join our Saturday football picks game', url: APP_LINK };

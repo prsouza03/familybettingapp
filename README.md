@@ -63,3 +63,11 @@ Then open **Actions → Update results → Run workflow** once to check that it 
 - No build step. It's plain HTML, CSS and JavaScript modules.
 - `npm test` runs the rules, feed and screenshot-matching tests (Node 20+).
 - `node scripts/update-results.mjs [YYYY-MM-DD]` runs the results update by hand. It needs the `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` environment variables.
+
+## Reliable Saturday updates (Supabase Edge Function)
+
+GitHub often skips scheduled runs on busy Saturday afternoons, so Supabase does the Saturday updates too:
+- [`supabase/functions/update-results/index.ts`](supabase/functions/update-results/index.ts) fetches every league, including the BBC ones, and saves the scores. The **Refresh scores** button calls it, and so does the app every 2 minutes while it's open during the games.
+- [`supabase/schedule.sql`](supabase/schedule.sql) runs it every 5 minutes on Saturdays from 3pm to 6pm UK time, even when nobody has the app open.
+
+Setup: in Supabase, go to **Edge Functions → Deploy a new function → Via Editor**. Name the function `update-results`, paste in the file, and deploy. Then in its **Details**, turn **off** "Verify JWT". Finally, run `supabase/schedule.sql` in the SQL Editor.
